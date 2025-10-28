@@ -24,6 +24,10 @@
 
 
 ## Git Notes
+- git status - display the status of the repoository to the terminal
 - git add <filename> - adds a file and its changes to staging
 - git commit - create a saved state
 	- -m "(message)" - add a PROFESSIONAL commit message
+- git init - initialized a new local repository
+- git log - display the history of commits to the terminal
+
