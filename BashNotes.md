@@ -23,3 +23,7 @@
 	- .. - used with Relative paths to denote the parent directory
 
 
+## Git Notes
+- git add <filename> - adds a file and its changes to staging
+- git commit - create a saved state
+	- -m "(message)" - add a PROFESSIONAL commit message
