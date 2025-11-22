@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Simple API Inspector</title>
+        <link rel="stylesheet" href="./styles.css">
+    </head>
+    <body>
+        <header>
+            <h1>API Inspector</h1>
+        </header>
+
+        <!-- Input Section -->
+        <div class="card">
+            <label for="urlInput">Target Endpoint:</label>
+            <div class="input-group">
+                <input type="url" id="urlInput" value="https://jsonplaceholder.typicode.com/users/1">
+                <button id="fetchBtn">
+                    <span id="btnIcon">➤</span> Fetch
+                </button>
+            </div>
+            
+            <div class="quick-links">
+                <small>Try: 
+                    <a href="#" class="quick-link" data-url="https://jsonplaceholder.typicode.com/posts/1">Post #1</a> | 
+                    <a href="#" class="quick-link" data-url="https://jsonplaceholder.typicode.com/users">All Users</a> | 
+                    <a href="#" class="quick-link" data-url="https://httpstat.us/404">404 Error</a>
+                </small>
+            </div>
+        </div>
+
+        <!-- Status Feedback -->
+        <div id="statusContainer" class="hidden"></div>
+
+        <!-- Output Section -->
+        <div class="result-container">
+            <div class="toolbar">
+                <button id="copyBtn" class="copy-btn">Copy JSON</button>
+            </div>
+            <pre><code id="jsonOutput">// Results will appear here...</code></pre>
+        </div>
+    </body>
+    <script type="module" src="./scripts.js"></script>
+</html>

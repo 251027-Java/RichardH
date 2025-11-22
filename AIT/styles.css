@@ -1,0 +1,116 @@
+/* 1. Minimal Reset & Layout */
+body {
+    font-family: sans-serif;
+    padding: 2rem;
+    max-width: 800px;
+    margin: 0 auto;
+    background-color: #f0f0f0;
+    color: #333;
+}
+
+/* 2. Structure */
+.card {
+    background: white;
+    padding: 1.5rem;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    margin-bottom: 1rem;
+}
+
+.input-group {
+    display: flex;
+    gap: 10px;
+    margin-top: 10px;
+    margin-bottom: 10px;
+}
+
+/* 3. Form Elements */
+input[type="url"] {
+    flex-grow: 1;
+    padding: 10px;
+    font-size: 1rem;
+}
+
+button {
+    padding: 10px 20px;
+    cursor: pointer;
+    font-size: 1rem;
+}
+
+/* 4. Status & Feedback */
+.status-box {
+    padding: 15px;
+    margin-bottom: 15px;
+    border: 1px solid transparent;
+    border-radius: 4px;
+}
+
+.status-error {
+    background: #fee;
+    border-color: #fcc;
+    color: #c00;
+}
+
+.status-success {
+    background: #efe;
+    border-color: #cfc;
+    color: #060;
+}
+
+.status-info {
+    background: #eef;
+    border-color: #ccf;
+    color: #00c;
+}
+
+/* 5. Code Output */
+.result-container {
+    position: relative;
+    background: #333;
+    color: #eee;
+    padding: 1rem;
+    border-radius: 4px;
+    overflow: auto;
+}
+
+pre {
+    margin: 0;
+}
+
+.toolbar {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 10px;
+    border-bottom: 1px solid #555;
+    padding-bottom: 5px;
+}
+
+.copy-btn {
+    background: transparent;
+    border: 1px solid #777;
+    color: #ddd;
+    font-size: 0.8rem;
+    padding: 2px 8px;
+}
+
+/* Utilities */
+.hidden {
+    display: none;
+}
+
+@keyframes spin {
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+.spin {
+    animation: spin 1s linear infinite;
+    display: inline-block;
+}
+
+svg {
+    width: 16px;
+    height: 16px;
+    vertical-align: middle;
+}

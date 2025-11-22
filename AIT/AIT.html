@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple API Inspector</title>
+    
+    <style>
+        /* 1. Minimal Reset & Layout */
+        body {
+            font-family: sans-serif;
+            padding: 2rem;
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: #f0f0f0;
+            color: #333;
+        }
+
+        /* 2. Structure */
+        .card {
+            background: white;
+            padding: 1.5rem;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+            margin-bottom: 10px;
+        }
+
+        /* 3. Form Elements */
+        input[type="url"] {
+            flex-grow: 1;
+            padding: 10px;
+            font-size: 1rem;
+        }
+
+        button {
+            padding: 10px 20px;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+
+        /* 4. Status & Feedback */
+        .status-box {
+            padding: 15px;
+            margin-bottom: 15px;
+            border: 1px solid transparent;
+            border-radius: 4px;
+        }
+        .status-error { background: #fee; border-color: #fcc; color: #c00; }
+        .status-success { background: #efe; border-color: #cfc; color: #060; }
+        .status-info { background: #eef; border-color: #ccf; color: #00c; }
+
+        /* 5. Code Output */
+        .result-container {
+            position: relative;
+            background: #333;
+            color: #eee;
+            padding: 1rem;
+            border-radius: 4px;
+            overflow: auto;
+        }
+
+        pre { margin: 0; }
+
+        .toolbar {
+            display: flex;
+            justify-content: flex-end;
+            margin-bottom: 10px;
+            border-bottom: 1px solid #555;
+            padding-bottom: 5px;
+        }
+
+        .copy-btn {
+            background: transparent;
+            border: 1px solid #777;
+            color: #ddd;
+            font-size: 0.8rem;
+            padding: 2px 8px;
+        }
+
+        /* Utilities */
+        .hidden { display: none; }
+        
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+        .spin { animation: spin 1s linear infinite; display: inline-block; }
+        
+        svg { width: 16px; height: 16px; vertical-align: middle; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>API Inspector</h1>
+    </header>
+
+    <!-- Input Section -->
+    <div class="card">
+        <label for="urlInput">Target Endpoint:</label>
+        <div class="input-group">
+            <input type="url" id="urlInput" value="https://jsonplaceholder.typicode.com/users/1">
+            <button id="fetchBtn">
+                <span id="btnIcon">➤</span> Fetch
+            </button>
+        </div>
+        
+        <div class="quick-links">
+            <small>Try: 
+                <a href="#" class="quick-link" data-url="https://jsonplaceholder.typicode.com/posts/1">Post #1</a> | 
+                <a href="#" class="quick-link" data-url="https://jsonplaceholder.typicode.com/users">All Users</a> | 
+                <a href="#" class="quick-link" data-url="https://httpstat.us/404">404 Error</a>
+            </small>
+        </div>
+    </div>
+
+    <!-- Status Feedback -->
+    <div id="statusContainer" class="hidden"></div>
+
+    <!-- Output Section -->
+    <div class="result-container">
+        <div class="toolbar">
+            <button id="copyBtn" class="copy-btn">Copy JSON</button>
+        </div>
+        <pre><code id="jsonOutput">// Results will appear here...</code></pre>
+    </div>
+
+    <!-- Application Logic -->
+    <script>
+        (() => {
+            const elements = {
+                input: document.getElementById('urlInput'),
+                btn: document.getElementById('fetchBtn'),
+                btnIcon: document.getElementById('btnIcon'),
+                output: document.getElementById('jsonOutput'),
+                status: document.getElementById('statusContainer'),
+                copyBtn: document.getElementById('copyBtn'),
+                quickLinks: document.querySelectorAll('.quick-link')
+            };
+
+            const uiState = {
+                setLoading(isLoading) {
+                    elements.btn.disabled = isLoading;
+                    elements.input.disabled = isLoading;
+                    
+                    if (isLoading) {
+                        elements.btnIcon.innerHTML = '⟳'; // Simple loading character
+                        elements.btnIcon.classList.add('spin');
+                        elements.btn.textContent = ' Loading...';
+                        elements.btn.prepend(elements.btnIcon);
+                        this.updateStatus('info', 'Fetching data...');
+                    } else {
+                        elements.btnIcon.innerHTML = '➤';
+                        elements.btnIcon.classList.remove('spin');
+                        elements.btn.textContent = ' Fetch';
+                        elements.btn.prepend(elements.btnIcon);
+                    }
+                },
+
+                updateStatus(type, message) {
+                    elements.status.classList.remove('hidden');
+                    // Reset classes
+                    elements.status.className = 'status-box';
+                    // Add specific type class
+                    elements.status.classList.add(`status-${type}`);
+                    elements.status.textContent = message;
+                },
+
+                displayData(data) {
+                    elements.output.textContent = JSON.stringify(data, null, 2);
+                }
+            };
+
+            const handleFetch = async () => {
+                const url = elements.input.value.trim();
+                if (!url) return;
+
+                uiState.setLoading(true);
+                elements.output.textContent = '// Fetching...';
+
+                try {
+                    const response = await fetch(url);
+                    
+                    if (!response.ok) {
+                        throw new Error(`HTTP Error: ${response.status}`);
+                    }
+
+                    const data = await response.json();
+                    uiState.displayData(data);
+                    uiState.updateStatus('success', `Success: ${response.status} OK`);
+
+                } catch (error) {
+                    let msg = error.message;
+                    if (msg.includes('Failed to fetch')) msg += ' (Likely CORS issue)';
+                    
+                    uiState.updateStatus('error', msg);
+                    elements.output.textContent = '// Request Failed';
+                } finally {
+                    uiState.setLoading(false);
+                }
+            };
+
+            // Event Listeners
+            elements.btn.addEventListener('click', handleFetch);
+            
+            elements.quickLinks.forEach(link => {
+                link.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    elements.input.value = e.target.dataset.url;
+                    handleFetch();
+                });
+            });
+
+            elements.copyBtn.addEventListener('click', () => {
+                if (elements.output.textContent.includes('//')) return;
+                navigator.clipboard.writeText(elements.output.textContent);
+                const original = elements.copyBtn.textContent;
+                elements.copyBtn.textContent = 'Copied!';
+                setTimeout(() => elements.copyBtn.textContent = original, 1500);
+            });
+
+        })();
+    </script>
+</body>
+</html>
