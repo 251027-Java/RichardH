@@ -3,7 +3,9 @@
 
 import { useState } from "react";
 import ExpenseForm from "./components/ExpenseForm";
-import ExpenseList from "./components/ExpenseList";
+import ExpenseList from "./components/ExpenseList/ExpenseList";
+import ExpensesChart from "./components/Expenses/ExpensesChart";
+import ExpensesFilter from "./components/Expenses/ExpensesFilter";
 
 // Mock data simulates a database response
 const DUMMY_EXPENSES = [
@@ -34,36 +36,48 @@ const DUMMY_EXPENSES = [
 ];
 
 function App() {
-  // TEACHING POINT: Initialize state with dummy data
   const [expenses, setExpenses] = useState(DUMMY_EXPENSES);
+  // 1. State for the Filter
+  const [filteredYear, setFilteredYear] = useState('2024');
 
   const addExpenseHandler = (expense) => {
-    // Add a random ID (in a real app, the backend does this)
     const expenseWithId = { ...expense, id: Math.random().toString() };
-
-    // TEACHING POINT: Updating state based on previous state
-    // We pass a function to setExpenses to ensure we have the latest snapshot
-    setExpenses((prevExpenses) => {
-      return [expenseWithId, ...prevExpenses];
-    });
+    setExpenses((prev) => [expenseWithId, ...prev]);
   };
+
+  const filterChangeHandler = (selectedYear) => {
+    setFilteredYear(selectedYear);
+  };
+
+  // 2. DERIVED STATE (Filtering)
+  // We do not create a new "state" for filtered expenses.
+  // We just calculate it on the fly. This keeps data in sync.
+  const filteredExpenses = expenses.filter((expense) => {
+    return expense.date.getFullYear().toString() === filteredYear;
+  });
 
   return (
     <div className="min-h-screen bg-slate-900 py-12 px-4 font-sans">
       <header className="max-w-2xl mx-auto mb-8 text-center">
-        <h1 className="text-3xl font-bold text-white mb-2">
-          Expense Tracker
-        </h1>
-        <p className="text-slate-400">
-          Phase 2: State & Events
-        </p>
+        <h1 className="text-3xl font-bold text-white mb-2">Expense Tracker</h1>
+        <p className="text-slate-400">Phase 3: Reporting & Filtering</p>
       </header>
 
-      {/* Pass the handler DOWN to the form */}
       <ExpenseForm onSaveExpenseData={addExpenseHandler} />
 
-      {/* Pass the state DOWN to the list */}
-      <ExpenseList items={expenses} />
+      <div className="w-full max-w-2xl mx-auto bg-slate-50 p-6 rounded-2xl shadow-inner mt-6">
+        {/* Controlled Component: Value and Change Handler passed from parent */}
+        <ExpensesFilter
+          selected={filteredYear}
+          onChangeFilter={filterChangeHandler}
+        />
+
+        {/* Visual Report based on filtered data */}
+        <ExpensesChart expenses={filteredExpenses} />
+
+        {/* List showing only filtered items */}
+        <ExpenseList items={filteredExpenses} />
+      </div>
     </div>
   );
 }

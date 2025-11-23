@@ -2,7 +2,7 @@
 // This is a "Stateless" or "Dumb" component.
 // It only cares about displaying the data passed to it via 'props'.
 
-import ExpenseDate from './ExpenseDate';
+import ExpenseDate from '../ExpenseDate';
 
 const ExpenseItem = ({ title, amount, date }) => {
     return (
