@@ -8,44 +8,17 @@ import ExpensesChart from "./components/Expenses/ExpensesChart";
 import ExpensesFilter from "./components/Expenses/ExpensesFilter";
 import ReportSummary from "./components/ReportSummary";
 import SavedReportsList from "./components/SavedReportsList";
-
-// Mock data simulates a database response
-const DUMMY_EXPENSES = [
-  {
-    id: 'e1',
-    title: 'Office Supplies',
-    amount: 94.12,
-    date: new Date(2023, 7, 14),
-  },
-  {
-    id: 'e2',
-    title: 'New Laptop',
-    amount: 799.49,
-    date: new Date(2024, 2, 12)
-  },
-  {
-    id: 'e3',
-    title: 'Car Insurance',
-    amount: 294.67,
-    date: new Date(2024, 2, 28),
-  },
-  {
-    id: 'e4',
-    title: 'Team Lunch',
-    amount: 120.50,
-    date: new Date(2024, 5, 12),
-  },
-];
+import expenseService from "./services/expenseService";
 
 function App() {
-  const [expenses, setExpenses] = useState(DUMMY_EXPENSES);
+  const [expenses, setExpenses] = useState([]);
+  // State for UI Status (Async Handling)
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
   const [filteredYear, setFilteredYear] = useState('2024');
   const [selectedIds, setSelectedIds] = useState([]);
   const [isReportVisible, setIsReportVisible] = useState(false);
 
-  // --- TEACHING POINT 1: Lazy Initialization ---
-  // We initialize the state by reading from LocalStorage.
-  // This function only runs ONCE (on mount), so it's efficient.
   const [savedReports, setSavedReports] = useState(() => {
     try {
       const storedReports = localStorage.getItem('mySavedReports');
@@ -56,15 +29,54 @@ function App() {
     }
   });
 
-    // --- TEACHING POINT 2: useEffect for Persistence ---
-  // Every time [savedReports] changes (Add OR Delete), we write to LocalStorage.
   useEffect(() => {
     localStorage.setItem('mySavedReports', JSON.stringify(savedReports));
   }, [savedReports]);
 
-  const addExpenseHandler = (expense) => {
-    const expenseWithId = { ...expense, id: Math.random().toString() };
-    setExpenses((prev) => [expenseWithId, ...prev]);
+  // --- DATA LOADING ---
+  useEffect(() => {
+    async function fetchExpenses() {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const data = await expenseService.getAll();
+
+        // FIX: Normalize Data!
+        // Convert the string 'date' from the API into a real Date object.
+        const transformedData = data.map(item => ({
+          ...item,
+          date: new Date(item.date)
+        }));
+
+        setExpenses(transformedData);
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    fetchExpenses();
+  }, []);
+
+  // --- ADD HANDLER ---
+  const addExpenseHandler = async (expenseData) => {
+    setIsLoading(true);
+    try {
+      const newExpense = await expenseService.create(expenseData);
+
+      // FIX: Normalize the single new item too!
+      const expenseWithDateObj = {
+        ...newExpense,
+        date: new Date(newExpense.date)
+      };
+
+      setExpenses((prev) => [expenseWithDateObj, ...prev]);
+    } catch (err) {
+      setError("Could not save expense. Try again.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const filterChangeHandler = (selectedYear) => {
@@ -85,7 +97,7 @@ function App() {
     return expense.date.getFullYear().toString() === filteredYear;
   });
 
-  // NEW LOGIC: Handling the Save Action
+
   const saveReportHandler = (reportData) => {
     setSavedReports((prevReports) => [reportData, ...prevReports]);
     setIsReportVisible(false); // Close modal on save

@@ -269,3 +269,92 @@ const [state, setState] = useState(() => {
 - Infinite Loops: If they put setSavedReports inside the useEffect that listens to savedReports, they will create an infinite loop.
 
 - JSON Errors: If LocalStorage has bad data (e.g., from a previous project), JSON.parse might crash the app. It's good practice to wrap the read logic in a try/catch block (as shown in the solution code).
+
+---
+
+## Phase 6 Instructor Guide: Server-Side Persistence
+
+Goal: Replace hardcoded data with a real HTTP Service connected to a REST API.
+
+### 1. Prerequisites: Setting up json-server
+
+- Before writing the React code, the students need a "Backend."
+- Install json-server:
+
+``` markdown
+npm install -g json-server
+```
+
+- Create the Database File: Create a file named db.json in the project root (outside src) and paste the content provided in the db.json code block.
+- Run the Server: Open a new terminal window (keep the React terminal running) and run:
+
+``` markdown
+json-server --watch db.json --port 3000
+```
+
+- Verify it works by visiting http://localhost:3000/expenses in the browser.
+
+### 2. Step-by-Step Coding Logic
+
+#### Step A: The Service Pattern (expenseService.js)
+
+- Create a new file src/services/expenseService.js.
+- Why? Explain "Separation of Concerns." The React component should care about displaying data, not fetching it.
+- The Code:
+
+``` markdown
+const baseUrl = 'http://localhost:3000/expenses';
+
+export const getAllExpenses = async () => {
+  const response = await fetch(baseUrl);
+  if (!response.ok) throw new Error('Could not fetch');
+  return response.json();
+};
+
+export const createExpense = async (data) => {
+  const response = await fetch(baseUrl, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data)
+  });
+  return response.json();
+};
+```
+
+#### Step B: Fetching on Mount (useEffect)
+
+- In App.jsx:
+  - Loading State: Add const [isLoading, setIsLoading] = useState(false);
+  - Error State: Add const [error, setError] = useState(null);
+  - The Effect: Use useEffect(() => { ... }, []) to run once on load.
+  - Crucial: You cannot mark the useEffect callback as async. You must define an async function inside it and call it immediately.
+
+``` markdown
+useEffect(() => {
+    async function loadData() {
+        // fetch logic here
+    }
+    loadData();
+}, []);
+```
+
+#### Step C: Handling Dates (The API Disconnect)
+
+- The Problem: The API returns date as a String ("2025-08-14"). Our previous code expected a Date Object.
+- The Fix: You can either:
+  - Map over the data immediately after fetching and convert strings to Date objects.
+  - Or (Recommended): Update ExpenseItem to accept a string and convert it on the fly: const dateObj = new Date(props.date);. This is often more robust.
+
+#### Step D: Async Form Submission
+
+- Update addExpenseHandler to be async.
+- Set Loading to true.
+- await expenseService.create(data).
+- Update state with the result (which now includes the real ID from the server!).
+- Set Loading to false.
+
+### 3. Common Student Errors
+
+- CORS Errors: Usually json-server handles this, but if they use a different backend, they might hit Cross-Origin issues.
+- "Objects are not valid as a React child": Often happens if error state is an Object instead of a String.
+- Infinite Loop: Putting fetch in useEffect but adding expenses as a dependency. It fetches -> updates expenses -> triggers effect -> fetches again...
