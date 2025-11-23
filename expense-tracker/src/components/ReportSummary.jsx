@@ -60,7 +60,6 @@ const ReportSummary = ({ selectedExpenses, onClose, onSave }) => {
           >
             Print
           </button>
-          {/* NEW: Save Button */}
           <button 
             onClick={handleSave}
             className="bg-emerald-600 text-white font-bold px-4 py-2 rounded hover:bg-emerald-700 transition-colors shadow-sm flex items-center gap-2"

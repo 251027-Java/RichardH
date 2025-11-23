@@ -1,8 +1,8 @@
 // --- INSTRUCTOR NOTE: This is your main src/App.jsx ---
 // It holds the "Source of Truth" (the data).
 
-import { useState } from "react";
-import ExpenseForm from "./components/ExpenseForm";
+import { useState, useEffect } from "react";
+import ExpenseForm from "./components/ExpenseForm/ExpenseForm";
 import ExpenseList from "./components/ExpenseList/ExpenseList";
 import ExpensesChart from "./components/Expenses/ExpensesChart";
 import ExpensesFilter from "./components/Expenses/ExpensesFilter";
@@ -40,10 +40,27 @@ const DUMMY_EXPENSES = [
 function App() {
   const [expenses, setExpenses] = useState(DUMMY_EXPENSES);
   const [filteredYear, setFilteredYear] = useState('2024');
-  // NEW STATE: Saved Reports List
   const [selectedIds, setSelectedIds] = useState([]);
   const [isReportVisible, setIsReportVisible] = useState(false);
-  const [savedReports, setSavedReports] = useState([]);
+
+  // --- TEACHING POINT 1: Lazy Initialization ---
+  // We initialize the state by reading from LocalStorage.
+  // This function only runs ONCE (on mount), so it's efficient.
+  const [savedReports, setSavedReports] = useState(() => {
+    try {
+      const storedReports = localStorage.getItem('mySavedReports');
+      return storedReports ? JSON.parse(storedReports) : [];
+    } catch (e) {
+      console.warn("Failed to read local storage", e);
+      return [];
+    }
+  });
+
+    // --- TEACHING POINT 2: useEffect for Persistence ---
+  // Every time [savedReports] changes (Add OR Delete), we write to LocalStorage.
+  useEffect(() => {
+    localStorage.setItem('mySavedReports', JSON.stringify(savedReports));
+  }, [savedReports]);
 
   const addExpenseHandler = (expense) => {
     const expenseWithId = { ...expense, id: Math.random().toString() };
@@ -73,6 +90,10 @@ function App() {
     setSavedReports((prevReports) => [reportData, ...prevReports]);
     setIsReportVisible(false); // Close modal on save
     setSelectedIds([]); // Optional: Clear selection after saving
+  };
+
+  const deleteReportHandler = (reportId) => {
+    setSavedReports(prev => prev.filter(r => r.id !== reportId));
   };
 
   const reportExpenses = expenses.filter(expense => selectedIds.includes(expense.id));
@@ -105,13 +126,13 @@ function App() {
 
         <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
           {/* Controlled Component: Value and Change Handler passed from parent */}
-        <ExpensesFilter
-          selected={filteredYear}
-          onChangeFilter={filterChangeHandler}
-        />
+          <ExpensesFilter
+            selected={filteredYear}
+            onChangeFilter={filterChangeHandler}
+          />
 
-        {/* Visual Report based on filtered data */}
-        <ExpensesChart expenses={filteredExpenses} /><h3 className="text-slate-500 font-bold border-b pb-2 mb-2 uppercase text-xs tracking-wider">
+          {/* Visual Report based on filtered data */}
+          <ExpensesChart expenses={filteredExpenses} /><h3 className="text-slate-500 font-bold border-b pb-2 mb-2 uppercase text-xs tracking-wider">
             Select items to include in report
           </h3>
           <ExpenseList
@@ -121,8 +142,8 @@ function App() {
           />
         </div>
 
-        {/* NEW: Display the list of saved reports */}
-        <SavedReportsList reports={savedReports} />
+        {/* Updated List with Delete functionality to show sync */}
+        <SavedReportsList reports={savedReports} onDelete={deleteReportHandler} />
       </div>
 
       {isReportVisible && (
