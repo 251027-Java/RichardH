@@ -6,6 +6,8 @@ import ExpenseForm from "./components/ExpenseForm";
 import ExpenseList from "./components/ExpenseList/ExpenseList";
 import ExpensesChart from "./components/Expenses/ExpensesChart";
 import ExpensesFilter from "./components/Expenses/ExpensesFilter";
+import ReportSummary from "./components/ReportSummary";
+import SavedReportsList from "./components/SavedReportsList";
 
 // Mock data simulates a database response
 const DUMMY_EXPENSES = [
@@ -37,8 +39,11 @@ const DUMMY_EXPENSES = [
 
 function App() {
   const [expenses, setExpenses] = useState(DUMMY_EXPENSES);
-  // 1. State for the Filter
   const [filteredYear, setFilteredYear] = useState('2024');
+  // NEW STATE: Saved Reports List
+  const [selectedIds, setSelectedIds] = useState([]);
+  const [isReportVisible, setIsReportVisible] = useState(false);
+  const [savedReports, setSavedReports] = useState([]);
 
   const addExpenseHandler = (expense) => {
     const expenseWithId = { ...expense, id: Math.random().toString() };
@@ -49,35 +54,84 @@ function App() {
     setFilteredYear(selectedYear);
   };
 
-  // 2. DERIVED STATE (Filtering)
-  // We do not create a new "state" for filtered expenses.
-  // We just calculate it on the fly. This keeps data in sync.
+  const toggleExpenseHandler = (id) => {
+    setSelectedIds((prevSelected) => {
+      if (prevSelected.includes(id)) {
+        return prevSelected.filter(item => item !== id);
+      } else {
+        return [...prevSelected, id];
+      }
+    });
+  };
+
   const filteredExpenses = expenses.filter((expense) => {
     return expense.date.getFullYear().toString() === filteredYear;
   });
 
+  // NEW LOGIC: Handling the Save Action
+  const saveReportHandler = (reportData) => {
+    setSavedReports((prevReports) => [reportData, ...prevReports]);
+    setIsReportVisible(false); // Close modal on save
+    setSelectedIds([]); // Optional: Clear selection after saving
+  };
+
+  const reportExpenses = expenses.filter(expense => selectedIds.includes(expense.id));
+
   return (
     <div className="min-h-screen bg-slate-900 py-12 px-4 font-sans">
       <header className="max-w-2xl mx-auto mb-8 text-center">
-        <h1 className="text-3xl font-bold text-white mb-2">Expense Tracker</h1>
-        <p className="text-slate-400">Phase 3: Reporting & Filtering</p>
+        <div>
+          <h1 className="text-3xl font-bold text-slate-900">Expense Tracker</h1>
+          <p className="text-slate-500">Phase 4: Reports & Persistence</p>
+        </div>
+
+        <button
+          onClick={() => setIsReportVisible(true)}
+          disabled={selectedIds.length === 0}
+          className={`px-6 py-3 rounded-xl font-bold transition-all shadow-md flex items-center gap-2 ${selectedIds.length > 0
+            ? 'bg-indigo-600 text-white hover:bg-indigo-700 translate-y-0'
+            : 'bg-slate-300 text-slate-500 cursor-not-allowed'
+            }`}
+        >
+          <span>Generate Report</span>
+          {selectedIds.length > 0 && (
+            <span className="bg-indigo-800 text-xs px-2 py-1 rounded-full">{selectedIds.length}</span>
+          )}
+        </button>
       </header>
 
-      <ExpenseForm onSaveExpenseData={addExpenseHandler} />
+      <div className="w-full max-w-2xl mx-auto">
+        <ExpenseForm onSaveExpenseData={addExpenseHandler} />
 
-      <div className="w-full max-w-2xl mx-auto bg-slate-50 p-6 rounded-2xl shadow-inner mt-6">
-        {/* Controlled Component: Value and Change Handler passed from parent */}
+        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+          {/* Controlled Component: Value and Change Handler passed from parent */}
         <ExpensesFilter
           selected={filteredYear}
           onChangeFilter={filterChangeHandler}
         />
 
         {/* Visual Report based on filtered data */}
-        <ExpensesChart expenses={filteredExpenses} />
+        <ExpensesChart expenses={filteredExpenses} /><h3 className="text-slate-500 font-bold border-b pb-2 mb-2 uppercase text-xs tracking-wider">
+            Select items to include in report
+          </h3>
+          <ExpenseList
+            items={expenses}
+            selectedIds={selectedIds}
+            onToggleItem={toggleExpenseHandler}
+          />
+        </div>
 
-        {/* List showing only filtered items */}
-        <ExpenseList items={filteredExpenses} />
+        {/* NEW: Display the list of saved reports */}
+        <SavedReportsList reports={savedReports} />
       </div>
+
+      {isReportVisible && (
+        <ReportSummary
+          selectedExpenses={reportExpenses}
+          onClose={() => setIsReportVisible(false)}
+          onSave={saveReportHandler} // Pass the save handler down
+        />
+      )}
     </div>
   );
 }

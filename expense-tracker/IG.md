@@ -8,6 +8,7 @@ Goal: Teach students how to break a UI into small, reusable pieces and pass data
 
 Have your students create a components folder inside src. Their file tree should look like this:
 
+```markdown
 src/
 ├── components/
 │   ├── ExpenseDate.jsx
@@ -16,6 +17,7 @@ src/
 ├── App.jsx
 ├── main.jsx
 └── index.css
+```
 
 ### 2. Step-by-Step Coding Logic
 
@@ -71,6 +73,7 @@ Goal: Teach students how to capture user input and update the UI dynamically.
 
 Ideally, create a new folder src/components/NewExpense to house the form logic.
 
+``` markdown
 src/
 ├── components/
 │   ├── NewExpense/       <-- NEW FOLDER
@@ -79,6 +82,8 @@ src/
 │   ├── ExpenseItem.jsx
 │   └── ExpenseList.jsx
 ├── App.jsx
+...
+```
 
 ### 2. Step-by-Step Coding Logic
 
@@ -126,9 +131,9 @@ Why? React schedules state updates. If you update rapidly, the "Wrong Way" might
 
 Forgot preventDefault: The page refreshes when they click "Add Expense".
 
-State is a String: event.target.value is always a string, even for <input type="number">. You must convert it (e.g., +enteredAmount) if you want to do math later.
+State is a String: event.target.value is always a string, even for `<input type="number">`. You must convert it (e.g., +enteredAmount) if you want to do math later.
 
-Undefined Prop: Trying to call props.onSaveExpenseData but forgetting to pass it in App.jsx (<ExpenseForm /> instead of <ExpenseForm onSaveExpenseData={...} />).
+Undefined Prop: Trying to call props.onSaveExpenseData but forgetting to pass it in App.jsx (`<ExpenseForm />` instead of `<ExpenseForm onSaveExpenseData={...} />`).
 
 ## Phase 3 Instructor Guide: Derived State & Lists
 
@@ -138,6 +143,7 @@ Goal: Teach students how to filter data and render dynamic reports.
 
 Add the Charting components to a new folder to keep things organized.
 
+``` markdown
 src/
 ├── components/
 │   ├── Chart/             <-- NEW FOLDER
@@ -149,13 +155,13 @@ src/
 │   ├── NewExpense/
 │   │   └── ExpenseForm.jsx
 ...
-
+```
 
 ### 2. Step-by-Step Coding Logic
 
 #### Step A: The Filter Logic (App.jsx & ExpensesFilter.jsx)
 
-Controlled Components: Explain that the <select> in ExpensesFilter doesn't manage its own state. It receives its value (props.selected) from App and notifies App of changes (props.onChangeFilter). This makes App the "Single Source of Truth."
+Controlled Components: Explain that the `<select>` in ExpensesFilter doesn't manage its own state. It receives its value (props.selected) from App and notifies App of changes (props.onChangeFilter). This makes App the "Single Source of Truth."
 
 Derived State: This is a critical best practice.
 
@@ -189,3 +195,63 @@ Filter not working: Usually happens because they are comparing a Number (from Da
 
 Chart bars empty: Often a math error. Dividing by zero (if maxMonth is 0) results in Infinity or NaN. Ensure the code handles the case where the max value is 0.
 
+## Phase 4 Instructor Guide: Selection & Reports
+
+Goal: Teach students how to manage selection state (checkboxes) and derive a new "view" (the report) based on that selection.
+
+### 1. File Structure Update
+
+Add the Report component.
+
+``` markdown
+src/
+├── components/  
+│   ├── Report/            <-- NEW FOLDER  
+│   │   └── ReportSummary.jsx  
+│   ├── Expenses/  
+...  
+```
+
+### 2. Step-by-Step Coding Logic
+
+#### Step A: Managing Selection State (App.jsx)
+
+The Concept: We need to know which items are selected.
+
+The State: const [selectedIds, setSelectedIds] = useState([]). We use an array of strings (IDs).
+
+The Toggle Logic: This is a classic interview question/pattern.
+
+IF the ID exists in the array → filter it out (remove it).
+
+IF the ID does not exist → [...spread] it in (add it).
+
+#### Step B: The Checkbox (ExpenseItem.jsx)
+
+Controlled Component: The checkbox checked prop is controlled by props.isSelected. The onChange calls props.onToggle(id).
+
+Prop Drilling: Note how the toggle function must be passed from App -> ExpenseList -> ExpenseItem.
+
+#### Step C: Derived Data (App.jsx)
+
+Before passing data to the ReportSummary, we calculate the subset:
+
+const reportExpenses = expenses.filter(expense =>
+  selectedIds.includes(expense.id)
+);
+
+Explain that we don't need a separate state for reportExpenses. It is derived from expenses and selectedIds.
+
+#### Step D: The Modal (ReportSummary.jsx)
+
+Conditional Rendering: In App.jsx, we use `{isReportVisible && <ReportSummary />}`.
+
+Aggregation: Inside ReportSummary, we use .reduce() to calculate the total sum of the selected items. This is a great time to teach the JavaScript .reduce() method if the class is advanced enough, otherwise a for...of loop works fine too.
+
+### 3. Common Student Errors
+
+Mutating State: attempting to use .push() on the selectedIds array. Remind them to always return a new array using spread syntax [...prev, newId].
+
+Prop Drilling: Forgetting to pass the id prop to ExpenseItem so it knows which item to toggle.
+
+Key Prop: When rendering the table rows in the Report, forgetting the key prop again.
