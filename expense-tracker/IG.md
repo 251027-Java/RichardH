@@ -358,3 +358,198 @@ useEffect(() => {
 - CORS Errors: Usually json-server handles this, but if they use a different backend, they might hit Cross-Origin issues.
 - "Objects are not valid as a React child": Often happens if error state is an Object instead of a String.
 - Infinite Loop: Putting fetch in useEffect but adding expenses as a dependency. It fetches -> updates expenses -> triggers effect -> fetches again...
+
+---
+
+## Phase 7 Instructor Guide: React Router
+
+Goal: Teach Client-Side Routing using react-router-dom.
+
+### 1. Installation
+
+Have students stop their dev server and run:
+
+`npm install react-router-dom`
+
+### 2. Setting up the Router
+
+- In main.jsx (the entry point), wrap the App with BrowserRouter.
+
+``` markdown
+import { BrowserRouter } from 'react-router-dom';
+
+ReactDOM.createRoot(document.getElementById('root')).render(
+  <React.StrictMode>
+    <BrowserRouter>
+      <App />
+    </BrowserRouter>
+  </React.StrictMode>,
+)
+```
+
+### 3. Creating Pages
+
+- Create a new folder src/pages. This separates "Views" from "Components".
+- pages/DashboardPage.jsx: Contains the ExpenseList, ExpenseFilter, and SavedReports.
+- pages/AddExpensePage.jsx: Contains the ExpenseForm.
+
+### 4. Refactoring App.jsx
+
+- Explain that App.jsx is no longer the "UI Container", but the "Traffic Cop".
+- Import Components: Routes, Route from 'react-router-dom'.
+- Define Routes:
+
+``` markdown
+<Routes>
+  <Route path="/" element={<DashboardPage ... />} />
+  <Route path="/add" element={<AddExpensePage ... />} />
+</Routes>
+```
+
+### 5. Navigation & Links
+
+- The Problem with <a> tags: Explain that <a href="/add"> triggers a browser refresh. We lose all our state (like expenses if they haven't saved to server yet)!
+- The Solution: Use <Link to="/add">. It changes the URL via the History API without reloading the page.
+
+### 6. programmatic Navigation
+
+- In AddExpensePage, after a successful submission, we want to go back to the dashboard automatically.
+- Hook: useNavigate()
+- Usage:
+
+``` markdown
+const navigate = useNavigate();
+// ... inside async submit handler ...
+await submitData();
+navigate('/'); // Redirect user
+```
+
+---
+
+## Topic Review
+
+### 1. Props (Passing Data Down)
+
+The Concept: React components are like JavaScript functions. Props are just the arguments you pass into those functions. They allow a parent component to control a child component.
+
+In your Demo: Look at DashboardPage. It needs to display the list of expenses.
+
+```JavaScript
+<ExpenseList items={expenses} ... />
+```
+
+Here, items is the prop. The ``DashboardPage` (Parent) is passing the expenses array (Data) down to `ExpenseList` (Child).
+
+The Rule: Props are Read-Only. `ExpenseList` can read items, but it cannot change them. If it tries to say `items = []`, React will throw an error. Data flows Down.
+
+### 2. Prop Drilling (The "Bucket Brigade")
+
+The Concept: This happens when you need to get data from the very top of your app to the very bottom, but the components in the middle don't actually need that data—they just pass it along.
+
+In your Demo: Look at the `toggleExpenseHandler` (the checkbox logic).
+
+Defined in `App`: The logic lives here because the State lives here.
+
+Passed to `DashboardPage`: `DashboardPage` doesn't use it, it just accepts it to pass it down.
+
+Passed to `ExpenseList`: `ExpenseList` doesn't use it either!
+
+Passed to `ExpenseItem`: Finally, the `<input onChange...>` uses it.
+
+Why it matters: It makes code harder to maintain. If you renamed that function, you'd have to update 4 different files. (We solve this in advanced React using Context, which is like a teleportation tunnel for data).
+
+### 3. Hooks (The "Magic")
+
+Hooks allow functional components to "hook into" React features like state and lifecycle. They always start with use.
+
+#### A. useState (The Memory)
+
+Standard variables in functions disappear when the function finishes running. `useState` allows a component to "remember" data between renders.
+
+In your Demo:
+
+``` JavaScript
+const [enteredTitle, setEnteredTitle] = useState('');
+```
+
+If you just used `let title = ''`, every time React re-drew the form, the variable would reset to empty. `useState` keeps the text there while the user types.
+
+#### B. useEffect (The Synchronizer)
+
+This is the hardest hook for beginners. Think of it as: "When [X] happens, do [Y]."
+
+In your Demo (Fetching Data):
+
+```JavaScript
+useEffect(() => {
+   fetchExpenses();
+}, []); // <--- Empty Dependency Array
+```
+
+Translation: "When this component first appears on screen (mounts), go fetch data."
+
+In your Demo (Saving Reports):
+
+```JavaScript
+useEffect(() => {
+   localStorage.setItem(...);
+}, [savedReports]); // <--- Dependency Array has 'savedReports'
+```
+
+Translation: "Whenever savedReports changes, run this code to save it to the browser."
+
+### 4. Lifting State Up (Data Flowing Up)
+
+The Concept: Since data only flows down (via Props), how does a child (like a Form) tell the Parent (App) that something happened?
+
+The Solution: The Parent passes a Function down as a prop. The Child calls that function as if it were a remote control.
+
+In your Demo:
+
+`App` creates `addExpenseHandler`.
+
+It passes it to `AddExpensePage` -> `ExpenseForm` as `props.onSaveExpenseData`.
+
+When the user clicks Submit, `ExpenseForm` calls:
+
+```JavaScript
+props.onSaveExpenseData(expenseData);
+```
+
+This triggers the function inside `App`, passing the data up.
+
+### 5. Derived State (Efficiency)
+
+The Concept: Beginners often store too much in State. If you can calculate something based on existing state, do not create new state for it. Calculate it on the fly.
+
+In your Demo: You have a filter for the year. You could have created a state called `const [visibleExpenses, setVisibleExpenses] = useState(...)`.
+
+Instead, you did this:
+
+``` JavaScript
+const filteredExpenses = expenses.filter((expense) => {
+   return expense.date.getFullYear().toString() === filteredYear;
+});
+```
+
+Why this is better: `filteredExpenses` is recalculated every time the component renders. If `expenses` changes (server data comes in) OR if `filteredYear` changes (user picks 2023), `filteredExpenses` updates automatically. You never have to worry about "syncing" two different states.
+
+### 6. Conditional Rendering
+
+The Concept: Showing or hiding UI elements based on state.
+
+In your Demo:
+
+``` JavaScript
+{isLoading && <div ...>Loading...</div>}
+```
+
+This is a "Short Circuit". If `isLoading` is true, it renders the div. If false, React ignores the rest of the line.
+
+Also in ExpenseList:
+
+```JavaScript
+if (items.length === 0) return <p>No expenses found.</p>;
+```
+
+This is an "Early Return". It prevents the rest of the component from running if there is no data to show.

@@ -5,7 +5,7 @@ const SavedReportsList = ({ reports, onDelete }) => {
     if (reports.length === 0) return null;
 
     return (
-        <div className="mt-8 bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+        <div className="mt-8 bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-200">
             <h3 className="text-slate-500 font-bold border-b pb-2 mb-4 uppercase text-xs tracking-wider">
                 Saved Reports (Local Storage)
             </h3>

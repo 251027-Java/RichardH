@@ -1,53 +1,39 @@
-// --- INSTRUCTOR NOTE: This is your main src/App.jsx ---
-// It holds the "Source of Truth" (the data).
-
 import { useState, useEffect } from "react";
-import ExpenseForm from "./components/ExpenseForm/ExpenseForm";
-import ExpenseList from "./components/ExpenseList/ExpenseList";
-import ExpensesChart from "./components/Expenses/ExpensesChart";
-import ExpensesFilter from "./components/Expenses/ExpensesFilter";
-import ReportSummary from "./components/ReportSummary";
-import SavedReportsList from "./components/SavedReportsList";
+import { Routes, Route, Link, useNavigate } from 'react-router-dom';
 import expenseService from "./services/expenseService";
+import DashboardPage from "./pages/DashboardPage";
+import AddExpensePage from "./pages/AddExpensePage";
+import Navigation from "./pages/Navigation";
+import ReportSummary from "./components/ReportSummary";
 
 function App() {
+  // HOOKS MUST BE USED INSIDE THE <BrowserRouter> provided by main.jsx
+  const navigate = useNavigate();
+
+  // 1. State
   const [expenses, setExpenses] = useState([]);
-  // State for UI Status (Async Handling)
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [filteredYear, setFilteredYear] = useState('2024');
+  const [filteredYear, setFilteredYear] = useState('2025');
   const [selectedIds, setSelectedIds] = useState([]);
   const [isReportVisible, setIsReportVisible] = useState(false);
-
   const [savedReports, setSavedReports] = useState(() => {
     try {
-      const storedReports = localStorage.getItem('mySavedReports');
-      return storedReports ? JSON.parse(storedReports) : [];
-    } catch (e) {
-      console.warn("Failed to read local storage", e);
-      return [];
-    }
+      const stored = localStorage.getItem('mySavedReports');
+      return stored ? JSON.parse(stored) : [];
+    } catch { return []; }
   });
 
-  useEffect(() => {
-    localStorage.setItem('mySavedReports', JSON.stringify(savedReports));
-  }, [savedReports]);
+  // 2. Effects
+  useEffect(() => { localStorage.setItem('mySavedReports', JSON.stringify(savedReports)); }, [savedReports]);
 
-  // --- DATA LOADING ---
   useEffect(() => {
     async function fetchExpenses() {
       setIsLoading(true);
       setError(null);
       try {
         const data = await expenseService.getAll();
-
-        // FIX: Normalize Data!
-        // Convert the string 'date' from the API into a real Date object.
-        const transformedData = data.map(item => ({
-          ...item,
-          date: new Date(item.date)
-        }));
-
+        const transformedData = data.map(item => ({ ...item, date: new Date(item.date) }));
         setExpenses(transformedData);
       } catch (err) {
         setError(err.message);
@@ -55,114 +41,83 @@ function App() {
         setIsLoading(false);
       }
     }
-
     fetchExpenses();
   }, []);
 
-  // --- ADD HANDLER ---
+  // 3. Handlers
   const addExpenseHandler = async (expenseData) => {
     setIsLoading(true);
     try {
       const newExpense = await expenseService.create(expenseData);
-
-      // FIX: Normalize the single new item too!
-      const expenseWithDateObj = {
-        ...newExpense,
-        date: new Date(newExpense.date)
-      };
-
+      const expenseWithDateObj = { ...newExpense, date: new Date(newExpense.date) };
       setExpenses((prev) => [expenseWithDateObj, ...prev]);
+      navigate('/dashboard'); // Redirect after add
     } catch (err) {
-      setError("Could not save expense. Try again.");
+      setError("Could not save expense.");
     } finally {
       setIsLoading(false);
     }
   };
 
-  const filterChangeHandler = (selectedYear) => {
-    setFilteredYear(selectedYear);
+  const toggleExpenseHandler = (id) => {
+    setSelectedIds((prev) => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
   };
 
-  const toggleExpenseHandler = (id) => {
-    setSelectedIds((prevSelected) => {
-      if (prevSelected.includes(id)) {
-        return prevSelected.filter(item => item !== id);
-      } else {
-        return [...prevSelected, id];
-      }
-    });
+  const saveReportHandler = (reportData) => {
+    setSavedReports((prev) => [reportData, ...prev]);
+    setIsReportVisible(false);
+    setSelectedIds([]);
   };
 
   const filteredExpenses = expenses.filter((expense) => {
     return expense.date.getFullYear().toString() === filteredYear;
   });
 
+  const reportExpenses = filteredExpenses.filter(expense => selectedIds.includes(expense.id));
 
-  const saveReportHandler = (reportData) => {
-    setSavedReports((prevReports) => [reportData, ...prevReports]);
-    setIsReportVisible(false); // Close modal on save
-    setSelectedIds([]); // Optional: Clear selection after saving
-  };
-
-  const deleteReportHandler = (reportId) => {
-    setSavedReports(prev => prev.filter(r => r.id !== reportId));
-  };
-
-  const reportExpenses = expenses.filter(expense => selectedIds.includes(expense.id));
-
+  // 4. Render
+  // NOTE: No <BrowserRouter> here! It is in main.jsx.
   return (
-    <div className="min-h-screen bg-slate-900 py-12 px-4 font-sans">
-      <header className="max-w-2xl mx-auto mb-8 text-center">
-        <div>
-          <h1 className="text-3xl font-bold text-slate-900">Expense Tracker</h1>
-          <p className="text-slate-500">Phase 4: Reports & Persistence</p>
-        </div>
+    <div className="min-h-screen bg-slate-700 font-sans text-slate-800 pb-12">
+      <Navigation />
 
-        <button
-          onClick={() => setIsReportVisible(true)}
-          disabled={selectedIds.length === 0}
-          className={`px-6 py-3 rounded-xl font-bold transition-all shadow-md flex items-center gap-2 ${selectedIds.length > 0
-            ? 'bg-indigo-600 text-white hover:bg-indigo-700 translate-y-0'
-            : 'bg-slate-300 text-slate-500 cursor-not-allowed'
-            }`}
-        >
-          <span>Generate Report</span>
-          {selectedIds.length > 0 && (
-            <span className="bg-indigo-800 text-xs px-2 py-1 rounded-full">{selectedIds.length}</span>
-          )}
-        </button>
-      </header>
-
-      <div className="w-full max-w-2xl mx-auto">
-        <ExpenseForm onSaveExpenseData={addExpenseHandler} />
-
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-          {/* Controlled Component: Value and Change Handler passed from parent */}
-          <ExpensesFilter
-            selected={filteredYear}
-            onChangeFilter={filterChangeHandler}
-          />
-
-          {/* Visual Report based on filtered data */}
-          <ExpensesChart expenses={filteredExpenses} /><h3 className="text-slate-500 font-bold border-b pb-2 mb-2 uppercase text-xs tracking-wider">
-            Select items to include in report
-          </h3>
-          <ExpenseList
-            items={expenses}
+      <Routes>
+        <Route path="/dashboard" element={
+          <DashboardPage
+            expenses={filteredExpenses}
+            filteredYear={filteredYear}
+            setFilteredYear={setFilteredYear}
             selectedIds={selectedIds}
-            onToggleItem={toggleExpenseHandler}
+            toggleExpenseHandler={toggleExpenseHandler}
+            savedReports={savedReports}
+            deleteReportHandler={(id) => setSavedReports(prev => prev.filter(r => r.id !== id))}
+            onOpenReport={() => setIsReportVisible(true)}
+            isLoading={isLoading}
+            error={error}
           />
-        </div>
+        } />
 
-        {/* Updated List with Delete functionality to show sync */}
-        <SavedReportsList reports={savedReports} onDelete={deleteReportHandler} />
-      </div>
+        <Route path="/add-expense" element={
+          <AddExpensePage
+            onAddExpense={addExpenseHandler}
+            isLoading={isLoading}
+          />
+        } />
+
+        {/* Default Redirect */}
+        <Route path="/" element={
+          <div className="text-center mt-20">
+            <h2 className="text-xl font-bold mb-4">Welcome to Expense Tracker</h2>
+            <Link to="/dashboard" className="bg-indigo-600 text-white px-6 py-3 rounded-lg font-bold">Go to Dashboard</Link>
+          </div>
+        } />
+      </Routes>
 
       {isReportVisible && (
         <ReportSummary
           selectedExpenses={reportExpenses}
           onClose={() => setIsReportVisible(false)}
-          onSave={saveReportHandler} // Pass the save handler down
+          onSave={saveReportHandler}
         />
       )}
     </div>
